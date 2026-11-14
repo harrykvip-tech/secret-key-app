@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f1f5f9" id="metaTheme">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="လျှို့ဝှက်သော့">
+    <title>လျှို့ဝှက်သော့ - Secret Key</title>
+    <link id="favIcon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23eff6ff'/%3E%3Cpath d='M36 46 V36 C36 22 64 22 64 36 V46' fill='none' stroke='%232563eb' stroke-width='6' stroke-linecap='round'/%3E%3Crect x='28' y='46' width='44' height='32' rx='8' fill='none' stroke='%232563eb' stroke-width='6'/%3E%3Ccircle cx='50' cy='59' r='4' fill='%232563eb'/%3E%3Cline x1='50' y1='62' x2='50' y2='70' stroke='%232563eb' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+    <link id="touchIcon" rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23eff6ff'/%3E%3Cpath d='M36 46 V36 C36 22 64 22 64 36 V46' fill='none' stroke='%232563eb' stroke-width='6' stroke-linecap='round'/%3E%3Crect x='28' y='46' width='44' height='32' rx='8' fill='none' stroke='%232563eb' stroke-width='6'/%3E%3Ccircle cx='50' cy='59' r='4' fill='%232563eb'/%3E%3Cline x1='50' y1='62' x2='50' y2='70' stroke='%232563eb' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+    <style>
+        /* Theme variables (default = Midnight Blue). JS overrides these via applyTheme() */
+        :root {
+            --bg: #0f172a; --card: #1e293b; --inner: #0f172a;
+            --text: #f8fafc; --muted: #94a3b8;
+            --primary: #3b82f6; --primary-hover: #2563eb; --on-primary: #ffffff;
+            --link: #60a5fa;
+            --success: #10b981; --on-success: #064e3b; --totp: #34d399;
+            --warning: #f59e0b;
+            --danger: #ef4444; --danger-text: #fca5a5;
+            --border: #334155;
+            --radius: 12px;
+            --font: system-ui, -apple-system, "Noto Sans Myanmar", sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        button, input, textarea { font-family: inherit; }
+        .app-container { width: 100%; max-width: 480px; }
+
+        /* Lock Screen */
+        .lock-screen {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-height: 85vh; text-align: center;
+        }
+        .lock-box {
+            background: var(--card); border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px);
+            padding: 28px 24px; width: 100%; max-width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .app-logo-svg { width: 64px; height: 64px; margin: 0 auto 12px auto; display: block; }
+        .pin-input {
+            text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: bold;
+            padding: 12px; margin: 14px 0; border-radius: var(--radius);
+            border: 1px solid var(--border); background: var(--bg); color: var(--text); width: 100%;
+        }
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; margin-bottom: 16px; gap: 8px;
+        }
+        .header h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 6px; }
+        .badge { background: var(--primary); color: var(--on-primary); font-size: 12px; padding: 2px 8px; border-radius: 12px; }
+        .auto-timer-badge {
+            background: color-mix(in srgb, var(--muted) 18%, transparent);
+            color: var(--muted); font-size: 11px; padding: 2px 7px; border-radius: 6px; font-family: monospace;
+        }
+        .header-btns { display: flex; gap: 5px; }
+        .actions-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        button {
+            background: var(--primary); color: var(--on-primary); border: none;
+            padding: 10px 14px; border-radius: calc(var(--radius) - 3px);
+            font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;
+        }
+        @media (hover: hover) { button:hover { background: var(--primary-hover); } }
+        button:active { filter: brightness(0.95); }
+        button.danger, button.danger:hover { background: var(--danger); color: #fff; }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        button.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+        button.secondary:hover { background: color-mix(in srgb, var(--card) 85%, var(--text)); }
+        button.lock-btn {
+            background: color-mix(in srgb, var(--danger) 15%, transparent);
+            color: var(--danger-text);
+            border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+        }
+        .search-box {
+            width: 100%; padding: 12px; border-radius: calc(var(--radius) - 3px);
+            border: 1px solid var(--border); background: var(--card); color: var(--text);
+            margin-bottom: 16px; font-size: 14px;
+        }
+        .account-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
+        }
+        .acc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+        .acc-email { font-weight: 600; font-size: 15px; color: var(--link); word-break: break-all; }
+        .acc-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .acc-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--inner); padding: 7px 10px; border-radius: 6px;
+            margin-top: 6px; font-size: 13px; gap: 8px;
+        }
+        .acc-row-text { word-break: break-all; font-family: monospace; font-size: 13px; }
+        .row-btns { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+        .eye-btn {
+            background: color-mix(in srgb, var(--muted) 18%, transparent);
+            color: var(--text); padding: 5px 8px; font-size: 12px; border-radius: 5px;
+        }
+        .eye-btn:hover { background: color-mix(in srgb, var(--muted) 32%, transparent); }
+        .totp-box {
+            display: flex; justify-content: space-between; align-items: center;
+            background: color-mix(in srgb, var(--success) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+            padding: 8px 12px; border-radius: calc(var(--radius) - 3px); margin-top: 8px;
+        }
+        .totp-code { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--totp); font-family: monospace; }
+        .totp-timer { font-size: 12px; color: var(--muted); margin-left: 8px; }
+        .totp-timer.low { color: var(--danger); font-weight: bold; }
+        .copy-btn { background: color-mix(in srgb, var(--muted) 28%, var(--card)); color: var(--text); padding: 5px 10px; font-size: 12px; border-radius: 5px; }
+        .copy-btn:hover { background: color-mix(in srgb, var(--muted) 42%, var(--card)); }
+        .copy-btn.green { background: var(--success); color: var(--on-success); }
+        .edit-btn { background: color-mix(in srgb, var(--primary) 15%, transparent); color: var(--link); padding: 4px 8px; font-size: 12px; border-radius: 5px; }
+        .del-btn { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger-text); padding: 4px 8px; font-size: 12px; border-radius: 5px; }
+        button.edit-btn:hover { background: color-mix(in srgb, var(--primary) 25%, transparent); }
+        button.del-btn:hover { background: color-mix(in srgb, var(--danger) 24%, transparent); }
+        button.lock-btn:hover { background: color-mix(in srgb, var(--danger) 25%, transparent); }
+        .note-text { font-size: 12px; color: var(--muted); margin-top: 8px; }
+        .empty-state { text-align: center; color: var(--muted); padding: 40px 12px; font-size: 14px; line-height: 1.7; }
+
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            justify-content: center; align-items: center; padding: 16px; z-index: 100;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card); padding: 20px; border-radius: var(--radius);
+            width: 100%; max-width: 420px; border: 1px solid var(--border);
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-content h3 { margin-top: 0; }
+        .field-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+        .input-group { display: flex; gap: 6px; margin-bottom: 10px; }
+        .input-group input { margin-bottom: 0; flex: 1; }
+        .gen-btn {
+            background: color-mix(in srgb, var(--success) 18%, transparent);
+            color: var(--totp);
+            border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
+            padding: 0 12px; font-size: 12px; white-space: nowrap;
+        }
+        .gen-btn:hover { background: color-mix(in srgb, var(--success) 30%, transparent); }
+        input, textarea {
+            width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px;
+        }
+        .theme-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .theme-opt {
+            display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-align: left;
+            background: var(--bg); color: var(--text); border: 2px solid var(--border); padding: 8px; font-size: 12px;
+        }
+        .theme-opt:hover { background: var(--bg); border-color: var(--primary); }
+        .theme-opt.active { border-color: var(--primary); }
+        .swatches { display: flex; gap: 4px; }
+        .swatches i { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(128,128,128,0.4); display: block; }
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--success); color: var(--on-success); padding: 8px 18px; border-radius: 20px;
+            font-size: 13px; font-weight: 600; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 200;
+            max-width: 90vw; text-align: center;
+        }
+        .toast.show { opacity: 1; }
+        .hidden { display: none !important; }
+        /* ---- side menu (drawer) ---- */
+        .header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        #menuBtn { position: relative; padding: 6px 8px; }
+        .menu-dot { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--warning); border: 2px solid var(--bg); }
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 90; }
+        .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+        .drawer {
+            position: fixed; top: 0; bottom: 0; left: 0; width: min(310px, 86vw);
+            background: var(--card); border-right: 1px solid var(--border);
+            transform: translateX(-102%); visibility: hidden;
+            transition: transform .25s ease, visibility .25s; z-index: 91;
+            display: flex; flex-direction: column; box-shadow: 8px 0 30px rgba(0,0,0,0.35);
+        }
+        .drawer.open { transform: none; visibility: visible; }
+        .drawer-head { display: flex; align-items: center; gap: 10px; padding: 14px 14px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 15px; }
+        .drawer-body { overflow-y: auto; padding: 4px 12px 24px; flex: 1; }
+        .drawer-sec { font-size: 11px; letter-spacing: .6px; color: var(--muted); margin: 18px 4px 6px; text-transform: uppercase; font-weight: 600; }
+        button.drawer-item {
+            width: 100%; justify-content: flex-start; background: transparent; color: var(--text);
+            border: none; padding: 11px 10px; font-weight: 500; margin-bottom: 2px; text-align: left;
+        }
+        button.drawer-item:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+        button.drawer-item .ic { color: var(--primary); }
+        button.drawer-item.lock-item, button.drawer-item.lock-item .ic { color: var(--danger-text); }
+        .drawer .field-label { margin: 10px 4px 4px; }
+        .drawer select { width: 100%; margin-bottom: 4px; background: var(--bg); }
+        .drawer .note-text { margin: 4px 4px 8px; line-height: 1.5; }
+
+        /* ---- v3 additions: icons, toolbar, settings ---- */
+        button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        i[data-ic] { display: inline-flex; font-style: normal; }
+        .ic { width: 1.2em; height: 1.2em; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .ic.filled { fill: currentColor; }
+        .lg-bg { fill: color-mix(in srgb, var(--primary) 16%, var(--card)); }
+        .lg-st { stroke: var(--primary); }
+        .lg-fl { fill: var(--primary); }
+        button.secondary .ic { color: var(--link); }
+        button.lock-btn .ic { color: var(--danger-text); }
+        h3 .ic { color: var(--primary); vertical-align: -3px; margin-right: 4px; }
+        .note-text .ic, .tag-warn .ic { vertical-align: -3px; }
+        .note-text .ic { color: var(--primary); }
+        .acc-row .copy-btn .ic { color: var(--link); }
+        .copy-btn.green .ic { color: inherit; }
+        .gen-btn .ic { color: var(--totp); }
+        .toolbar { display: flex; gap: 8px; margin-bottom: 16px; }
+        .search-wrap { position: relative; flex: 1; min-width: 0; }
+        .search-wrap .search-box { margin-bottom: 0; padding-left: 38px; }
+        .search-ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--primary); pointer-events: none; }
+        select {
+            padding: 10px; border-radius: calc(var(--radius) - 3px); border: 1px solid var(--border);
+            background: var(--card); color: var(--text); font-size: 13px; font-family: inherit;
+        }
+        .modal select { width: 100%; margin-bottom: 10px; background: var(--bg); font-size: 14px; }
+        button.fav-btn, button.fav-btn:hover { background: transparent; color: var(--muted); padding: 4px 6px; }
+        button.fav-btn.on, button.fav-btn.on:hover { color: var(--warning); }
+        .account-card.is-fav { border-color: color-mix(in srgb, var(--warning) 55%, var(--border)); }
+        .warn-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .tag-warn {
+            font-size: 11px; color: var(--warning); padding: 2px 8px; border-radius: 10px;
+            background: color-mix(in srgb, var(--warning) 14%, transparent);
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- LOCK SCREEN -->
+    <div id="lockScreen" class="lock-screen">
+        <div class="lock-box">
+            <svg class="app-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="84" height="84" rx="22" class="lg-bg"/><path d="M36 46 V36 C36 22 64 22 64 36 V46" fill="none" class="lg-st" stroke-width="6" stroke-linecap="round"/><rect x="28" y="46" width="44" height="32" rx="8" fill="none" class="lg-st" stroke-width="6"/><circle cx="50" cy="59" r="4" class="lg-fl"/><line x1="50" y1="62" x2="50" y2="70" class="lg-st" stroke-width="4" stroke-linecap="round"/></svg>
+            <div style="font-size: 12px; color: var(--link); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 4px;">
+                လျှို့ဝှက်သော့ (Secret Key)
+            </div>
+            <h3 id="lockTitle" style="margin: 0 0 6px 0;">သော့ခတ်ထားပါသည်</h3>
+            <p id="lockDesc" style="font-size: 13px; color: var(--muted); margin: 0;">
+                ဆက်လက်အသုံးပြုရန် PIN နံပါတ်ရိုက်ထည့်ပါ
+            </p>
+            <input type="password" id="pinField" class="pin-input" placeholder="••••" maxlength="64" autocomplete="off" onkeydown="if(event.key==='Enter') submitPin()">
+            <input type="password" id="pinConfirmField" class="pin-input hidden" placeholder="ထပ်ရိုက်ပါ" maxlength="64" autocomplete="off" onkeydown="if(event.key==='Enter') submitPin()">
+            <p id="pinError" style="color: var(--danger); font-size: 12px; margin: 0 0 10px 0; min-height: 16px;"></p>
+            <button onclick="submitPin()" id="lockSubmitBtn" style="width: 100%; padding: 12px;">ဖွင့်မည် (Unlock)</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden">
+        <div class="header">
+            <div class="header-left">
+            <button class="secondary" id="menuBtn" onclick="openDrawer()" title="Menu"><i data-ic="menu"></i><span class="menu-dot hidden" id="menuDot"></span></button>
+            <h2>
+                <svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0" aria-hidden="true"><rect x="4" y="4" width="92" height="92" rx="24" class="lg-bg"/><path d="M36 46 V36 C36 22 64 22 64 36 V46" fill="none" class="lg-st" stroke-width="6" stroke-linecap="round"/><rect x="28" y="46" width="44" height="32" rx="8" fill="none" class="lg-st" stroke-width="6"/><circle cx="50" cy="59" r="4" class="lg-fl"/><line x1="50" y1="62" x2="50" y2="70" class="lg-st" stroke-width="4" stroke-linecap="round"/></svg> လျှို့ဝှက်သော့ <span class="badge" id="countBadge">0</span>
+                <span class="auto-timer-badge" id="autoLockDisplay" title="Auto-Lock Countdown">02:00</span>
+            </h2>
+            </div>
+            <div class="header-btns">
+                <button class="lock-btn" onclick="lockVault('manual')" style="padding: 6px 10px; font-size: 12px;"><i data-ic="lock"></i> Lock</button>
+            </div>
+            <input type="file" id="restoreFileInput" accept=".json,application/json" style="display:none;" onchange="handleRestoreFile(event)">
+        </div>
+
+        <div class="actions-bar">
+            <button onclick="openModal('singleModal')"><i data-ic="plus"></i> အကောင့်ထည့်</button>
+            <button class="secondary" onclick="openModal('bulkModal')"><i data-ic="clipboard"></i> Bulk Import</button>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-wrap">
+                <i data-ic="search" class="search-ic"></i>
+                <input type="text" class="search-box" id="searchInput" placeholder="Gmail သို့မဟုတ် Note ဖြင့် ရှာဖွေပါ..." autocomplete="off" oninput="renderAccounts()">
+            </div>
+            <select id="sortSel" onchange="setSort(this.value)" title="စီစဉ်ရန်">
+                <option value="new">မူလအစီအစဉ်</option>
+                <option value="az">A → Z</option>
+                <option value="za">Z → A</option>
+            </select>
+        </div>
+
+        <div id="accountList"></div>
+    </div>
+
+</div>
+
+<!-- Side menu -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawer-head">
+        <svg width="28" height="28" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="4" y="4" width="92" height="92" rx="24" class="lg-bg"/><path d="M36 46 V36 C36 22 64 22 64 36 V46" fill="none" class="lg-st" stroke-width="6" stroke-linecap="round"/><rect x="28" y="46" width="44" height="32" rx="8" fill="none" class="lg-st" stroke-width="6"/><circle cx="50" cy="59" r="4" class="lg-fl"/><line x1="50" y1="62" x2="50" y2="70" class="lg-st" stroke-width="4" stroke-linecap="round"/></svg>
+        <span>Menu</span>
+        <button class="secondary" onclick="closeDrawer()" style="margin-left:auto; padding:6px 8px;" title="ပိတ်မည်"><i data-ic="x"></i></button>
+    </div>
+    <div class="drawer-body">
+        <div class="drawer-sec">အသွင်အပြင်</div>
+        <button class="drawer-item" onclick="closeDrawer(); openModal('themeModal')"><i data-ic="palette"></i> Theme ရွေးရန်</button>
+
+        <div class="drawer-sec">လုံခြုံရေး</div>
+        <button class="drawer-item" onclick="closeDrawer(); openModal('changePinModal')"><i data-ic="key"></i> PIN / စကားဝှက် ပြောင်းရန်</button>
+        <span class="field-label"><i data-ic="timer"></i> Auto-Lock ကြာချိန်</span>
+        <select id="autoLockSel" onchange="setAutoLock(this.value)">
+            <option value="60000">၁ မိနစ်</option>
+            <option value="120000">၂ မိနစ်</option>
+            <option value="300000">၅ မိနစ်</option>
+            <option value="900000">၁၅ မိနစ်</option>
+        </select>
+        <span class="field-label"><i data-ic="copy"></i> Copy ကူးထားသည်ကို ရှင်းချိန်</span>
+        <select id="clipSel" onchange="setClipClear(this.value)">
+            <option value="15000">၁၅ စက္ကန့်</option>
+            <option value="30000">၃၀ စက္ကန့်</option>
+            <option value="60000">၆၀ စက္ကန့်</option>
+            <option value="0">မရှင်းပါ</option>
+        </select>
+
+        <div class="drawer-sec">Backup</div>
+        <div class="note-text" id="backupInfo"></div>
+        <button class="drawer-item" onclick="closeDrawer(); exportBackup()"><i data-ic="download"></i> Backup သိမ်းမည်</button>
+        <button class="drawer-item" onclick="closeDrawer(); triggerRestore()"><i data-ic="folder"></i> Backup ပြန်ထည့်မည်</button>
+        <button class="drawer-item" onclick="closeDrawer(); exportCsv()"><i data-ic="note"></i> CSV Export (Encrypt မလုပ်ထား)</button>
+
+        <div class="drawer-sec">အကောင့်</div>
+        <button class="drawer-item lock-item" onclick="closeDrawer(); lockVault('manual')"><i data-ic="lock"></i> Lock လုပ်မည်</button>
+    </div>
+</aside>
+
+<!-- Single Add Modal -->
+<div class="modal" id="singleModal">
+    <div class="modal-content">
+        <h3>Gmail အသစ်ထည့်ရန်</h3>
+        <input type="email" id="inEmail" placeholder="example@gmail.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="input-group">
+            <input type="text" id="inPass" placeholder="Password" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="gen-btn" onclick="fillStrongPassword('inPass')"><i data-ic="dice"></i> Generate</button>
+        </div>
+        <div class="input-group">
+            <input type="text" id="inSecret" placeholder="2FA Secret Key (သို့မဟုတ် otpauth:// link)" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="gen-btn" onclick="openQr('inSecret')"><i data-ic="scan"></i> Scan</button>
+        </div>
+        <input type="text" id="inRec" placeholder="Recovery Email (ရှိလျှင်)" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <input type="text" id="inNote" placeholder="မှတ်စု (ဥပမာ- Play Store / Game အကောင့်)" autocomplete="off">
+        <div style="display:flex; gap:8px;">
+            <button onclick="addSingle()" style="flex:1;">သိမ်းမည်</button>
+            <button class="secondary" onclick="closeModal('singleModal')">ပိတ်မည်</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h3><i data-ic="edit"></i> အကောင့်အချက်အလက် ပြင်ဆင်ရန်</h3>
+        <input type="hidden" id="editId">
+        <span class="field-label">Gmail Address</span>
+        <input type="email" id="editEmail" placeholder="example@gmail.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <span class="field-label">Password</span>
+        <div class="input-group">
+            <input type="text" id="editPass" placeholder="Password" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="gen-btn" onclick="fillStrongPassword('editPass')"><i data-ic="dice"></i> Generate</button>
+        </div>
+        <span class="field-label">2FA Secret Key</span>
+        <div class="input-group">
+            <input type="text" id="editSecret" placeholder="2FA Secret Key (မရှိလျှင် အလွတ်ထားပါ)" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="gen-btn" onclick="openQr('editSecret')"><i data-ic="scan"></i> Scan</button>
+        </div>
+        <span class="field-label">Recovery Email</span>
+        <input type="text" id="editRec" placeholder="Recovery Email" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <span class="field-label">မှတ်စု (Note)</span>
+        <input type="text" id="editNote" placeholder="မှတ်စု" autocomplete="off">
+        <div style="display:flex; gap:8px; margin-top:4px;">
+            <button onclick="saveEdit()" style="flex:1;">ပြင်ဆင်မှု သိမ်းမည်</button>
+            <button class="secondary" onclick="closeModal('editModal')">ပိတ်မည်</button>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Import Modal -->
+<div class="modal" id="bulkModal">
+    <div class="modal-content">
+        <h3>Bulk Import (အများကြီးထည့်ရန်)</h3>
+        <p style="font-size:12px; color:var(--muted); margin-top:0;">
+            တစ်ကြောင်းလျှင် တစ်အကောင့်နှုန်းဖြင့် ထည့်ပါ -<br>
+            <code>email|password|2fa_secret|recovery|note</code><br>
+            Password ထဲတွင် <code>|</code> ပါလျှင် <code>\|</code> ဟု ရေးပါ (<code>\</code> ကိုယ်တိုင်ဆိုလျှင် <code>\\</code>)
+        </p>
+        <textarea id="bulkText" rows="6" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="user1@gmail.com|pass123|JBSWY3DPEHPK3PXP|rec@gmail.com|Main&#10;user2@gmail.com|pass456|||Game"></textarea>
+        <div style="display:flex; gap:8px;">
+            <button onclick="addBulk()" style="flex:1;">အားလုံးသွင်းမည်</button>
+            <button class="secondary" onclick="closeModal('bulkModal')">ပိတ်မည်</button>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Modal -->
+<div class="modal" id="restoreModal">
+    <div class="modal-content">
+        <h3>Backup ပြန်ထည့်သွင်းရန်</h3>
+        <p id="restoreSummary" style="font-size:13px; color:var(--muted); line-height:1.5;"></p>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+            <button onclick="confirmRestore('merge')"><i data-ic="plus"></i> ပေါင်းထည့်မည် (Email တူလျှင် Update လုပ်မည်)</button>
+            <button onclick="confirmRestore('replace')" style="background: var(--warning); color: #000;"><i data-ic="refresh"></i> အားလုံးကို အစားထိုးမည် (Replace)</button>
+            <button class="secondary" onclick="cancelRestore()">ပယ်ဖျက်မည်</button>
+        </div>
+    </div>
+</div>
+
+<!-- Change PIN Modal -->
+<div class="modal" id="changePinModal">
+    <div class="modal-content">
+        <h3>PIN နံပါတ် ပြောင်းလဲရန်</h3>
+        <input type="password" id="newPinInput" placeholder="PIN/စကားဝှက် အသစ် (အနည်းဆုံး ၈ လုံး)" maxlength="64" autocomplete="off">
+        <input type="password" id="newPinConfirm" placeholder="ထပ်ရိုက်ပါ" maxlength="64" autocomplete="off">
+        <div style="display:flex; gap:8px;">
+            <button onclick="changePin()" style="flex:1;">ပြောင်းမည်</button>
+            <button class="secondary" onclick="closeModal('changePinModal')">ပိတ်မည်</button>
+        </div>
+    </div>
+</div>
+
+<!-- Theme Modal -->
+<div class="modal" id="themeModal">
+    <div class="modal-content">
+        <h3><i data-ic="palette"></i> UI Theme ရွေးရန်</h3>
+        <div class="theme-list" id="themeList"></div>
+        <button class="secondary" onclick="closeModal('themeModal')" style="width:100%; margin-top:12px;">ပိတ်မည်</button>
+    </div>
+</div>
+
+<!-- In-app dialog (replaces alert/confirm/prompt, which embedded viewers block) -->
+<div class="modal" id="dialogModal" style="z-index:300;">
+    <div class="modal-content">
+        <p id="dlgMsg" style="font-size:15px; line-height:1.7; margin:0 0 14px 0; white-space:pre-line;"></p>
+        <input type="password" id="dlgInput" class="hidden" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter') document.getElementById('dlgOk').click()">
+        <div style="display:flex; gap:8px;">
+            <button id="dlgOk" style="flex:1;">အိုကေ</button>
+            <button id="dlgCancel" class="secondary">မလုပ်တော့ပါ</button>
+        </div>
+    </div>
+</div>
+
+<!-- QR Scan Modal -->
+<div class="modal" id="qrModal" style="z-index:250;">
+    <div class="modal-content">
+        <h3><i data-ic="scan"></i> QR Scan (2FA)</h3>
+        <video id="qrVideo" playsinline muted style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; background:#000;"></video>
+        <p id="qrStatus" style="font-size:12px; color:var(--muted); margin:8px 0 12px 0; line-height:1.6;"></p>
+        <div style="display:flex; gap:8px;">
+            <button class="secondary" onclick="qrFromImage()" style="flex:1;"><i data-ic="image"></i> ပုံမှ ဖတ်မည်</button>
+            <button class="secondary" onclick="closeQr()">ပိတ်မည်</button>
+        </div>
+        <input type="file" id="qrImgInput" accept="image/*" style="display:none;" onchange="handleQrImage(event)">
+    </div>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+    const STORAGE_KEY = 'gmail_vault_encrypted_v1';
+    const THEME_KEY = 'gmail_vault_theme';
+    const FAIL_KEY = 'gmail_vault_fails';
+    const UNTIL_KEY = 'gmail_vault_lock_until';
+
+    let AUTO_LOCK_MS = 120000;        // idle auto-lock (changeable in Settings)
+    const BG_GRACE_MS = 30000;        // leaving the tab/app: lock only if away > 30 s
+    const PBKDF2_ITER = 310000;
+    const LEGACY_ITER = 100000;       // iteration count used by the old version
+    const MIN_NEW_PIN = 8;   // new PINs must be 8+ chars (letters+digits recommended); old shorter PINs still unlock
+    const MAX_FREE_TRIES = 5;
+
+    const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+    const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+
+    const AUTOLOCK_KEY = 'gmail_vault_autolock';
+    const CLIP_KEY = 'gmail_vault_clipclear';
+    const SORT_KEY = 'gmail_vault_sort';
+    const BACKUP_WARN_DAYS = 7;
+    let clipClearMs = 30000;
+    let sortMode = 'new';
+    let clipTimer = null;
+    (function loadSettings() {
+        const a = Number(lsGet(AUTOLOCK_KEY));
+        if ([60000, 120000, 300000, 900000].includes(a)) AUTO_LOCK_MS = a;
+        const c = lsGet(CLIP_KEY);
+        if (c !== null && [0, 15000, 30000, 60000].includes(Number(c))) clipClearMs = Number(c);
+        const so = lsGet(SORT_KEY);
+        if (['new', 'az', 'za'].includes(so)) sortMode = so;
+    })();
+
+    // ---------- Icons (follow theme colours via currentColor / CSS vars) ----------
+    const ICONS = {
+        plus: '<path d="M12 5v14M5 12h14"/>',
+        menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+        x: '<path d="M18 6 6 18M6 6l12 12"/>',
+        timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/>',
+        palette: '<circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 22a10 10 0 1 1 10-10c0 3-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A2 2 0 0 1 12 22z"/>',
+        key: '<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M16 7l3 3M14 9l2 2"/>',
+        lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+        settings: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+        clipboard: '<rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/>',
+        download: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+        folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+        search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+        edit: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+        trash: '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/>',
+        eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+        eyeoff: '<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.7A17 17 0 0 0 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.4-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+        copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
+        star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+        refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M3 21v-5h5M21 3v5h-5"/>',
+        note: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/>',
+        dice: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="16" r="1"/>',
+        scan: '<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M7 12h10"/>',
+        image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
+        alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',
+        check: '<path d="M20 6 9 17l-5-5"/>'
+    };
+    function ic(name, filled) {
+        return `<svg class="ic${filled ? ' filled' : ''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+    }
+    function hydrateIcons() {
+        document.querySelectorAll('[data-ic]').forEach(el => { el.innerHTML = ic(el.dataset.ic); });
+    }
+
+    let currentPin = null;
+    let accounts = [];
+    let visiblePasswords = new Set();
+    let pendingRestoreData = [];
+    let isFirstSetup = false;
+    let lastActivity = Date.now();
+    let hiddenAt = 0;
+    let isPickingFile = false;
+    let busy = false;
+    const totpLast = {};
+
+    // ---------- Themes ----------
+    const SANS = 'system-ui, -apple-system, "Noto Sans Myanmar", sans-serif';
+    const MONO = 'ui-monospace, Menlo, Consolas, "Noto Sans Myanmar", monospace';
+    const SERIF = 'Georgia, "Noto Serif Myanmar", serif';
+    const THEMES = {
+        midnight: { name: 'Midnight Blue', v: { bg:'#0f172a', card:'#1e293b', inner:'#0f172a', text:'#f8fafc', muted:'#94a3b8', primary:'#3b82f6', 'primary-hover':'#2563eb', 'on-primary':'#ffffff', link:'#60a5fa', success:'#10b981', 'on-success':'#064e3b', totp:'#34d399', warning:'#f59e0b', danger:'#ef4444', 'danger-text':'#fca5a5', border:'#334155', radius:'12px', font:SANS } },
+        terminal: { name: 'Emerald Terminal', v: { bg:'#020a06', card:'#07140d', inner:'#020a06', text:'#d1fae5', muted:'#5f9f82', primary:'#22c55e', 'primary-hover':'#16a34a', 'on-primary':'#02130a', link:'#4ade80', success:'#22c55e', 'on-success':'#02130a', totp:'#86efac', warning:'#eab308', danger:'#f43f5e', 'danger-text':'#fda4af', border:'#14532d', radius:'4px', font:MONO } },
+        light: { name: 'Clean Light', v: { bg:'#f1f5f9', card:'#ffffff', inner:'#f1f5f9', text:'#0f172a', muted:'#64748b', primary:'#2563eb', 'primary-hover':'#1d4ed8', 'on-primary':'#ffffff', link:'#1d4ed8', success:'#059669', 'on-success':'#ffffff', totp:'#047857', warning:'#d97706', danger:'#dc2626', 'danger-text':'#b91c1c', border:'#e2e8f0', radius:'14px', font:SANS } },
+        neon: { name: 'Purple Neon', v: { bg:'#0b0618', card:'#170d2e', inner:'#0b0618', text:'#f5f3ff', muted:'#9b8ec7', primary:'#8b5cf6', 'primary-hover':'#7c3aed', 'on-primary':'#ffffff', link:'#c4b5fd', success:'#22d3ee', 'on-success':'#042f3a', totp:'#67e8f9', warning:'#f472b6', danger:'#fb7185', 'danger-text':'#fecdd3', border:'#3b2a6b', radius:'16px', font:SANS } },
+        sunset: { name: 'Sunset Amber', v: { bg:'#1c1008', card:'#2b1a0e', inner:'#1c1008', text:'#fff7ed', muted:'#c2a284', primary:'#f97316', 'primary-hover':'#ea580c', 'on-primary':'#1c0a00', link:'#fdba74', success:'#84cc16', 'on-success':'#1a2e05', totp:'#bef264', warning:'#fbbf24', danger:'#ef4444', 'danger-text':'#fca5a5', border:'#4a2c16', radius:'12px', font:SANS } },
+        ocean: { name: 'Ocean Teal', v: { bg:'#04202b', card:'#08303f', inner:'#04202b', text:'#e6fbff', muted:'#7fb4c4', primary:'#06b6d4', 'primary-hover':'#0891b2', 'on-primary':'#022b33', link:'#67e8f9', success:'#2dd4bf', 'on-success':'#042f2e', totp:'#5eead4', warning:'#fcd34d', danger:'#f87171', 'danger-text':'#fecaca', border:'#0e4d61', radius:'18px', font:SANS } },
+        rose: { name: 'Rose Light', v: { bg:'#fff1f2', card:'#ffffff', inner:'#ffe4e6', text:'#4c0519', muted:'#9f6b78', primary:'#e11d48', 'primary-hover':'#be123c', 'on-primary':'#ffffff', link:'#be123c', success:'#059669', 'on-success':'#ffffff', totp:'#047857', warning:'#d97706', danger:'#b91c1c', 'danger-text':'#9f1239', border:'#fecdd3', radius:'20px', font:SANS } },
+        mono: { name: 'Slate Mono', v: { bg:'#111111', card:'#1a1a1a', inner:'#111111', text:'#fafafa', muted:'#8a8a8a', primary:'#fafafa', 'primary-hover':'#d4d4d4', 'on-primary':'#111111', link:'#e5e5e5', success:'#a3a3a3', 'on-success':'#111111', totp:'#fafafa', warning:'#d4d4d4', danger:'#ef4444', 'danger-text':'#fca5a5', border:'#2e2e2e', radius:'6px', font:SANS } },
+        cyber: { name: 'Cyberpunk', v: { bg:'#0a0a0f', card:'#14141f', inner:'#0a0a0f', text:'#fdf4ff', muted:'#8b8ba7', primary:'#facc15', 'primary-hover':'#eab308', 'on-primary':'#0a0a0f', link:'#f0abfc', success:'#22d3ee', 'on-success':'#001018', totp:'#22d3ee', warning:'#ff2e97', danger:'#ff2e97', 'danger-text':'#ff8fc7', border:'#ff2e9766', radius:'0px', font:MONO } },
+        paper: { name: 'Paper & Ink', v: { bg:'#f5efe3', card:'#fffaf0', inner:'#efe6d3', text:'#3b2f1e', muted:'#8a7a60', primary:'#7c4a1e', 'primary-hover':'#5f3815', 'on-primary':'#fffaf0', link:'#7c4a1e', success:'#4d7c0f', 'on-success':'#ffffff', totp:'#3f6212', warning:'#b45309', danger:'#b91c1c', 'danger-text':'#991b1b', border:'#dccfb2', radius:'10px', font:SERIF } }
+    };
+
+    function setAppIcons(t) {
+        const p = t.v.primary, bg = t.v.card;
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='${bg}'/><path d='M36 46 V36 C36 22 64 22 64 36 V46' fill='none' stroke='${p}' stroke-width='6' stroke-linecap='round'/><rect x='28' y='46' width='44' height='32' rx='8' fill='none' stroke='${p}' stroke-width='6'/><circle cx='50' cy='59' r='4' fill='${p}'/><line x1='50' y1='62' x2='50' y2='70' stroke='${p}' stroke-width='4' stroke-linecap='round'/></svg>`;
+        const href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+        ['favIcon', 'touchIcon'].forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute('href', href); });
+    }
+
+    function applyTheme(key, persist = true) {
+        const t = THEMES[key] || THEMES.midnight;
+        const root = document.documentElement.style;
+        Object.entries(t.v).forEach(([k, val]) => root.setProperty('--' + k, val));
+        document.getElementById('metaTheme').setAttribute('content', t.v.bg);
+        setAppIcons(t);
+        if (persist) { try { localStorage.setItem(THEME_KEY, key); } catch (e) {} }
+        renderThemeList(key);
+    }
+
+    function renderThemeList(active) {
+        const el = document.getElementById('themeList');
+        el.innerHTML = Object.entries(THEMES).map(([k, t]) => `
+            <button class="theme-opt ${k === active ? 'active' : ''}" data-theme="${k}">
+                <span class="swatches"><i style="background:${t.v.bg}"></i><i style="background:${t.v.card}"></i><i style="background:${t.v.primary}"></i></span>
+                ${escapeHtml(t.name)}
+            </button>`).join('');
+    }
+
+    document.getElementById('themeList').addEventListener('click', e => {
+        const b = e.target.closest('[data-theme]');
+        if (b) applyTheme(b.dataset.theme);
+    });
+
+    // ---------- In-app dialogs ----------
+    let dlgResolve = null;
+    function showDialog({ msg, ok = 'အိုကေ', cancel = null, danger = false, input = false }) {
+        return new Promise(resolve => {
+            if (dlgResolve) { const prev = dlgResolve; dlgResolve = null; prev(false); }
+            dlgResolve = resolve;
+            document.getElementById('dlgMsg').innerText = msg;
+            const okBtn = document.getElementById('dlgOk');
+            const cancelBtn = document.getElementById('dlgCancel');
+            const inp = document.getElementById('dlgInput');
+            okBtn.innerText = ok;
+            okBtn.className = danger ? 'danger' : '';
+            cancelBtn.classList.toggle('hidden', !cancel);
+            if (cancel) cancelBtn.innerText = cancel;
+            inp.classList.toggle('hidden', !input);
+            inp.value = '';
+            okBtn.onclick = () => closeDialog(input ? inp.value : true);
+            cancelBtn.onclick = () => closeDialog(input ? null : false);
+            openModal('dialogModal');
+            if (input) setTimeout(() => inp.focus(), 50);
+        });
+    }
+    function closeDialog(val) {
+        closeModal('dialogModal');
+        document.getElementById('dlgInput').value = '';
+        const r = dlgResolve; dlgResolve = null;
+        if (r) r(val);
+    }
+    const uiAlert = msg => showDialog({ msg });
+    const uiConfirm = (msg, ok = 'အတည်ပြုမည်', danger = false) => showDialog({ msg, ok, cancel: 'မလုပ်တော့ပါ', danger });
+    const uiPrompt = msg => showDialog({ msg, ok: 'အိုကေ', cancel: 'မလုပ်တော့ပါ', input: true });
+
+    // ---------- Helpers ----------
+    function uid() {
+        if (crypto.randomUUID) return crypto.randomUUID();
+        return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function escapeHtml(str) {
+        return String(str == null ? '' : str).replace(/[&<>"']/g, m => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[m]));
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // ---------- Strong Password Generator (unbiased) ----------
+    function randInt(max) {
+        const limit = Math.floor(0x100000000 / max) * max;
+        const a = new Uint32Array(1);
+        do { crypto.getRandomValues(a); } while (a[0] >= limit);
+        return a[0] % max;
+    }
+
+    function generateStrongPassword(length = 16) {
+        const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const lower = "abcdefghijkmnopqrstuvwxyz";
+        const nums = "23456789";
+        const symbols = "!@#$%&*?_+-=";
+        const all = upper + lower + nums + symbols;
+        const pick = s => s[randInt(s.length)];
+        const arr = [pick(upper), pick(lower), pick(nums), pick(symbols)];
+        while (arr.length < length) arr.push(pick(all));
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = randInt(i + 1);
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr.join('');
+    }
+
+    function fillStrongPassword(inputId) {
+        const el = document.getElementById(inputId);
+        if (!el) return;
+        el.value = generateStrongPassword(16);
+        showToast("Strong Password (16 လုံး) ထုတ်ပေးပြီးပါပြီ!");
+    }
+
+    // ---------- Auto-Lock (timestamp based, works even if timers are throttled) ----------
+    function idleRemainingSec() {
+        return Math.max(0, Math.ceil((AUTO_LOCK_MS - (Date.now() - lastActivity)) / 1000));
+    }
+
+    function resetIdleTimer() {
+        if (currentPin) {
+            lastActivity = Date.now();
+            updateAutoLockDisplay();
+        }
+    }
+
+    function updateAutoLockDisplay() {
+        const el = document.getElementById('autoLockDisplay');
+        if (!el) return;
+        const r = idleRemainingSec();
+        el.innerText = `${String(Math.floor(r / 60)).padStart(2, '0')}:${String(r % 60).padStart(2, '0')}`;
+        el.style.color = r <= 15 ? 'var(--danger)' : 'var(--muted)';
+    }
+
+    ['click', 'touchstart', 'mousemove', 'keydown', 'scroll'].forEach(evt => {
+        document.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (!currentPin) return;
+        if (document.hidden) {
+            if (!isPickingFile) hiddenAt = Date.now();
+        } else {
+            if (hiddenAt && Date.now() - hiddenAt > BG_GRACE_MS) {
+                hiddenAt = 0;
+                lockVault('switch');
+                return;
+            }
+            hiddenAt = 0;
+            if (idleRemainingSec() <= 0) lockVault('timeout');
+            else resetIdleTimer();
+        }
+    });
+
+    setInterval(() => {
+        if (!currentPin) return;
+        updateAutoLockDisplay();
+        if (idleRemainingSec() <= 0) lockVault('timeout');
+    }, 1000);
+
+    // ---------- AES-256-GCM ----------
+    async function deriveKey(pin, salt, iterations) {
+        const keyMaterial = await crypto.subtle.importKey(
+            "raw", new TextEncoder().encode(pin), { name: "PBKDF2" }, false, ["deriveKey"]
+        );
+        return crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+            keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+        );
+    }
+
+    async function encryptData(dataObj, pin) {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await deriveKey(pin, salt, PBKDF2_ITER);
+        const encrypted = await crypto.subtle.encrypt(
+            { name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(dataObj))
+        );
+        return JSON.stringify({
+            v: 2, iter: PBKDF2_ITER,
+            salt: Array.from(salt), iv: Array.from(iv), cipher: Array.from(new Uint8Array(encrypted))
+        });
+    }
+
+    async function decryptData(payloadStr, pin) {
+        const p = JSON.parse(payloadStr);
+        const iter = p.iter || LEGACY_ITER;
+        const key = await deriveKey(pin, new Uint8Array(p.salt), iter);
+        const decrypted = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: new Uint8Array(p.iv) }, key, new Uint8Array(p.cipher)
+        );
+        return { data: JSON.parse(new TextDecoder().decode(decrypted)), iter };
+    }
+
+    function normalizeAccounts(list) {
+        return list.map(a => ({
+            id: String(a.id || uid()),
+            email: String(a.email || ''),
+            pass: String(a.pass || ''),
+            secret: a.secret ? String(a.secret) : '',
+            rec: a.rec ? String(a.rec) : '',
+            note: a.note ? String(a.note) : '',
+            fav: !!a.fav
+        }));
+    }
+
+    // ---------- Lock Screen ----------
+    function initLockScreen(reason = '') {
+        const existing = lsGet(STORAGE_KEY);
+        const title = document.getElementById('lockTitle');
+        const desc = document.getElementById('lockDesc');
+        const confirmField = document.getElementById('pinConfirmField');
+        const btn = document.getElementById('lockSubmitBtn');
+
+        if (!window.crypto || !crypto.subtle) {
+            document.getElementById('pinError').innerText = "ဤ Browser/ပတ်ဝန်းကျင်တွင် Encryption မရနိုင်ပါ (HTTPS သို့မဟုတ် ဖိုင်အဖြစ် ဖွင့်ပါ)";
+            btn.disabled = true;
+            return;
+        }
+
+        if (!existing) {
+            isFirstSetup = true;
+            title.innerText = "PIN အသစ်သတ်မှတ်ပါ";
+            desc.innerText = `သင့် Gmail နှင့် 2FA များကို Encrypt လုပ်ပြီး သိမ်းဆည်းရန် စကားဝှက် (အနည်းဆုံး ${MIN_NEW_PIN} လုံး၊ စာလုံးနှင့် ဂဏန်း ရောထားပါ) ပေးပါ`;
+            confirmField.classList.remove('hidden');
+            btn.innerText = "PIN သတ်မှတ်ပြီး စတင်မည်";
+        } else {
+            isFirstSetup = false;
+            title.innerText = "သော့ခတ်ထားပါသည်";
+            if (reason === 'timeout') desc.innerText = `${AUTO_LOCK_MS / 60000} မိနစ်ကြာ အသုံးမပြုသဖြင့် လုံခြုံရေးအရ Auto-Lock ချထားပါသည်`;
+            else if (reason === 'switch') desc.innerText = "တခြား App ထံ ကြာကြာ ပြောင်းသွားသဖြင့် လုံခြုံရေးအရ Auto-Lock ချထားပါသည်";
+            else desc.innerText = "Data များကို ဖွင့်ကြည့်ရန် သင့် PIN နံပါတ်ရိုက်ထည့်ပါ";
+            confirmField.classList.add('hidden');
+            btn.innerText = "ဖွင့်မည် (Unlock)";
+        }
+    }
+
+    async function submitPin() {
+        if (busy) return;
+        const pin = document.getElementById('pinField').value.trim();
+        const errEl = document.getElementById('pinError');
+        const btn = document.getElementById('lockSubmitBtn');
+        errEl.innerText = "";
+
+        if (isFirstSetup) {
+            if (pin.length < MIN_NEW_PIN) { errEl.innerText = `စကားဝှက် အနည်းဆုံး ${MIN_NEW_PIN} လုံး ရှိရပါမည်။`; return; }
+            const confirmPin = document.getElementById('pinConfirmField').value.trim();
+            if (pin !== confirmPin) { errEl.innerText = "PIN နှစ်ခု မတူညီပါ။ ပြန်စစ်ဆေးပါ။"; return; }
+            busy = true; btn.disabled = true;
+            try {
+                currentPin = pin;
+                accounts = [];
+                await saveToStorage();
+                unlockSuccess();
+            } catch (e) {
+                currentPin = null;
+                errEl.innerText = "သိမ်းဆည်း၍ မရပါ (Browser storage ပိတ်ထားနိုင်ပါသည်)";
+            } finally { busy = false; btn.disabled = false; }
+            return;
+        }
+
+        if (pin.length < 4) { errEl.innerText = "PIN နံပါတ် အနည်းဆုံး ၄ လုံး ရှိရပါမည်။"; return; }
+
+        const now = Date.now();
+        const until = Number(lsGet(UNTIL_KEY)) || 0;
+        if (now < until) {
+            errEl.innerText = `မှားယွင်းမှု များနေသဖြင့် ${Math.ceil((until - now) / 1000)} စက္ကန့် စောင့်ပါ။`;
+            return;
+        }
+
+        busy = true; btn.disabled = true;
+        try {
+            const { data, iter } = await decryptData(lsGet(STORAGE_KEY), pin);
+            accounts = normalizeAccounts(data);
+            currentPin = pin;
+            lsDel(FAIL_KEY);
+            lsDel(UNTIL_KEY);
+            if (iter !== PBKDF2_ITER) await saveToStorage(); // upgrade old encryption strength
+            unlockSuccess();
+        } catch (e) {
+            const fails = (Number(lsGet(FAIL_KEY)) || 0) + 1;
+            lsSet(FAIL_KEY, String(fails));
+            if (fails >= MAX_FREE_TRIES) {
+                const delay = Math.min(30000 * Math.pow(2, fails - MAX_FREE_TRIES), 15 * 60000);
+                lsSet(UNTIL_KEY, String(Date.now() + delay));
+                errEl.innerText = `PIN မှားနေပါသည်။ ${Math.round(delay / 1000)} စက္ကန့် စောင့်ပါ။`;
+            } else {
+                errEl.innerText = `PIN နံပါတ် မှားယွင်းနေပါသည်။ (${fails}/${MAX_FREE_TRIES})`;
+            }
+            document.getElementById('pinField').value = "";
+        } finally { busy = false; btn.disabled = false; }
+    }
+
+    function unlockSuccess() {
+        document.getElementById('pinField').value = "";
+        document.getElementById('pinConfirmField').value = "";
+        document.getElementById('lockScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        visiblePasswords.clear();
+        hiddenAt = 0;
+        resetIdleTimer();
+        renderAccounts();
+        updateBackupInfo();
+    }
+
+    function lockVault(reason = 'manual') {
+        if (dlgResolve) closeDialog(false);
+        try { closeQr(); } catch (e) {}
+        closeDrawer();
+        flushClip();
+        currentPin = null;
+        accounts = [];
+        pendingRestoreData = [];
+        visiblePasswords.clear();
+        Object.keys(totpLast).forEach(k => delete totpLast[k]);
+        // wipe any plaintext left in modal inputs / search box
+        document.querySelectorAll('.modal input, .modal textarea').forEach(i => { i.value = ''; });
+        document.getElementById('searchInput').value = '';
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        document.getElementById('accountList').innerHTML = "";
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('lockScreen').classList.remove('hidden');
+        document.getElementById('pinError').innerText = "";
+        initLockScreen(reason);
+        if (reason === 'manual') showToast("လျှို့ဝှက်သော့ကို Lock ချလိုက်ပါပြီ");
+    }
+
+    async function changePin() {
+        const p1 = document.getElementById('newPinInput').value.trim();
+        const p2 = document.getElementById('newPinConfirm').value.trim();
+        if (p1.length < MIN_NEW_PIN) return uiAlert(`PIN/စကားဝှက် အနည်းဆုံး ${MIN_NEW_PIN} လုံး ရိုက်ပါ`);
+        if (p1 !== p2) return uiAlert("PIN နှစ်ခု မတူပါ");
+
+        const old = currentPin;
+        currentPin = p1;
+        try {
+            await saveToStorage();
+        } catch (e) {
+            currentPin = old;
+            return uiAlert("PIN ပြောင်း၍ မရပါ");
+        }
+        document.getElementById('newPinInput').value = "";
+        document.getElementById('newPinConfirm').value = "";
+        closeModal('changePinModal');
+        showToast("PIN အသစ်ဖြင့် ပြန်လည် Encrypt လုပ်ပြီးပါပြီ");
+    }
+
+    async function saveToStorage() {
+        if (!currentPin) return;
+        const payload = await encryptData(accounts, currentPin);
+        localStorage.setItem(STORAGE_KEY, payload); // throws if storage is full/blocked
+        renderAccounts();
+    }
+
+    async function safeSave(okMsg) {
+        try {
+            await saveToStorage();
+            if (okMsg) showToast(okMsg);
+            return true;
+        } catch (e) {
+            await uiAlert("သိမ်းဆည်း၍ မရပါ - Browser storage ပြည့်နေ/ပိတ်ထားနိုင်ပါသည်");
+            return false;
+        }
+    }
+
+    // ---------- TOTP ----------
+    function base32ToBytes(base32) {
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        const cleaned = base32.toUpperCase().replace(/[^A-Z2-7]/g, '');
+        let bits = "";
+        for (const ch of cleaned) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0');
+        const bytes = new Uint8Array(Math.floor(bits.length / 8));
+        for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(bits.substr(i * 8, 8), 2);
+        return bytes;
+    }
+
+    function normalizeSecret(s) {
+        s = (s || '').trim();
+        const m = s.match(/[?&]secret=([^&]+)/i);
+        if (m) { try { s = decodeURIComponent(m[1]); } catch (e) { s = m[1]; } }
+        return s.replace(/[\s-]/g, '').replace(/=+$/, '').toUpperCase();
+    }
+
+    async function generateTOTP(secret) {
+        try {
+            const keyBytes = base32ToBytes(secret);
+            if (keyBytes.length === 0) return "INVALID";
+            const counter = Math.floor(Date.now() / 1000 / 30);
+            const buf = new ArrayBuffer(8);
+            const dv = new DataView(buf);
+            dv.setUint32(0, Math.floor(counter / 0x100000000), false);
+            dv.setUint32(4, counter >>> 0, false);
+            const cryptoKey = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+            const hmac = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, buf));
+            const o = hmac[hmac.length - 1] & 0x0f;
+            const bin = ((hmac[o] & 0x7f) << 24) | ((hmac[o + 1] & 0xff) << 16) | ((hmac[o + 2] & 0xff) << 8) | (hmac[o + 3] & 0xff);
+            return (bin % 1000000).toString().padStart(6, '0');
+        } catch (e) {
+            return "ERROR";
+        }
+    }
+
+    const fmtCode = c => (c.length === 6 ? `${c.slice(0, 3)} ${c.slice(3)}` : c);
+
+    async function updateAllTotp() {
+        if (!currentPin) return;
+        const remaining = 30 - (Math.floor(Date.now() / 1000) % 30);
+        for (const acc of accounts.slice()) {
+            if (!acc.secret) continue;
+            const codeEl = document.getElementById(`totp-${acc.id}`);
+            const timerEl = document.getElementById(`timer-${acc.id}`);
+            if (!codeEl || !timerEl) continue;
+            const code = await generateTOTP(acc.secret);
+            if (!currentPin) return;
+            totpLast[acc.id] = code;
+            codeEl.innerText = fmtCode(code);
+            codeEl.dataset.raw = code;
+            timerEl.innerText = `${remaining}s`;
+            timerEl.className = remaining <= 5 ? "totp-timer low" : "totp-timer";
+        }
+    }
+    setInterval(updateAllTotp, 1000);
+
+    // ---------- Sort / weak-password helpers ----------
+    function sortedAccounts(list) {
+        const arr = list.slice();
+        if (sortMode === 'az') arr.sort((a, b) => a.email.localeCompare(b.email));
+        else if (sortMode === 'za') arr.sort((a, b) => b.email.localeCompare(a.email));
+        return arr.sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0)); // favourites always first (stable)
+    }
+
+    function passIssues(acc, counts) {
+        const p = acc.pass || '', out = [];
+        if (!p) return out;
+        if (counts[p] > 1) out.push('Password တူနေသည်');
+        const kinds = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter(r => r.test(p)).length;
+        if (p.length < 10 || kinds < 3) out.push('Password အားနည်းသည်');
+        return out;
+    }
+
+    function setSort(v) {
+        sortMode = ['new', 'az', 'za'].includes(v) ? v : 'new';
+        lsSet(SORT_KEY, sortMode);
+        renderAccounts();
+    }
+
+    async function toggleFav(id) {
+        const a = accounts.find(x => x.id === id);
+        if (!a) return;
+        a.fav = !a.fav;
+        await safeSave();
+    }
+
+    // ---------- Render ----------
+    function renderAccounts() {
+        if (!currentPin) return;
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const listEl = document.getElementById('accountList');
+        const matched = accounts.filter(a =>
+            a.email.toLowerCase().includes(query) || (a.note && a.note.toLowerCase().includes(query))
+        );
+        const filtered = sortedAccounts(matched);
+        const passCount = {};
+        accounts.forEach(a => { if (a.pass) passCount[a.pass] = (passCount[a.pass] || 0) + 1; });
+
+        document.getElementById('countBadge').innerText = accounts.length;
+
+        if (filtered.length === 0) {
+            listEl.innerHTML = `<div class="empty-state">${accounts.length === 0
+                ? 'အကောင့် မရှိသေးပါ။<br>အပေါ်က “+ အကောင့်ထည့်” ကို နှိပ်ပါ။'
+                : 'ရှာဖွေမှုနှင့် ကိုက်ညီသော အကောင့် မတွေ့ပါ။'}</div>`;
+            return;
+        }
+
+        listEl.innerHTML = filtered.map(acc => {
+            const id = escapeHtml(acc.id);
+            const shown = visiblePasswords.has(acc.id);
+            const cached = totpLast[acc.id];
+            const issues = passIssues(acc, passCount);
+            return `
+            <div class="account-card${acc.fav ? ' is-fav' : ''}">
+                <div class="acc-top">
+                    <span class="acc-email">${escapeHtml(acc.email)}</span>
+                    <div class="acc-actions">
+                        <button class="fav-btn${acc.fav ? ' on' : ''}" data-act="fav" data-id="${id}" title="Favorite">${ic('star', acc.fav)}</button>
+                        <button class="edit-btn" data-act="edit" data-id="${id}">${ic('edit')} ပြင်မည်</button>
+                        <button class="del-btn" data-act="del" data-id="${id}">${ic('trash')} ဖျက်မည်</button>
+                    </div>
+                </div>
+                <div class="acc-row">
+                    <span class="acc-row-text">Email: ${escapeHtml(acc.email)}</span>
+                    <button class="copy-btn" data-act="copy-email" data-id="${id}">${ic('copy')} Copy</button>
+                </div>
+                <div class="acc-row">
+                    <span class="acc-row-text" id="pass-text-${id}" style="color: ${shown ? 'var(--warning)' : 'var(--text)'};">${shown ? 'Pass: ' + escapeHtml(acc.pass) : 'Pass: ••••••••'}</span>
+                    <div class="row-btns">
+                        <button class="eye-btn" id="eye-btn-${id}" data-act="toggle" data-id="${id}">${shown ? ic('eyeoff') : ic('eye')}</button>
+                        <button class="copy-btn" data-act="copy-pass" data-id="${id}">${ic('copy')} Copy Pass</button>
+                    </div>
+                </div>
+                ${issues.length ? `<div class="warn-tags">${issues.map(t => `<span class="tag-warn">${ic('alert')} ${t}</span>`).join('')}</div>` : ''}
+                ${acc.secret ? `
+                <div class="totp-box">
+                    <div>
+                        <span style="font-size:11px; color:var(--muted); display:block;">2FA CODE</span>
+                        <span class="totp-code" id="totp-${id}" data-raw="${cached || ''}">${cached ? fmtCode(cached) : '------'}</span>
+                        <span class="totp-timer" id="timer-${id}">30s</span>
+                    </div>
+                    <button class="copy-btn green" data-act="copy-totp" data-id="${id}">${ic('copy')} Copy 2FA</button>
+                </div>` : ''}
+                ${acc.rec ? `<div class="note-text">${ic('refresh')} Recovery: ${escapeHtml(acc.rec)}</div>` : ''}
+                ${acc.note ? `<div class="note-text">${ic('note')} ${escapeHtml(acc.note)}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        updateAllTotp();
+    }
+
+    document.getElementById('accountList').addEventListener('click', e => {
+        const b = e.target.closest('[data-act]');
+        if (!b) return;
+        const id = b.dataset.id;
+        switch (b.dataset.act) {
+            case 'edit': openEditModal(id); break;
+            case 'del': deleteAcc(id); break;
+            case 'copy-email': copyById(id, 'email'); break;
+            case 'copy-pass': copyById(id, 'pass'); break;
+            case 'copy-totp': copyTotp(id); break;
+            case 'toggle': togglePasswordView(id); break;
+            case 'fav': toggleFav(id); break;
+        }
+    });
+
+    function togglePasswordView(id) {
+        const acc = accounts.find(a => a.id === id);
+        const textEl = document.getElementById(`pass-text-${id}`);
+        const btnEl = document.getElementById(`eye-btn-${id}`);
+        if (!acc || !textEl || !btnEl) return;
+        if (visiblePasswords.has(id)) {
+            visiblePasswords.delete(id);
+            textEl.innerText = "Pass: ••••••••";
+            textEl.style.color = "var(--text)";
+            btnEl.innerHTML = ic('eye');
+        } else {
+            visiblePasswords.add(id);
+            textEl.innerText = `Pass: ${acc.pass}`;
+            textEl.style.color = "var(--warning)";
+            btnEl.innerHTML = ic('eyeoff');
+        }
+    }
+
+    // ---------- Clipboard ----------
+    async function copyText(text, label) {
+        let ok = false;
+        try {
+            await navigator.clipboard.writeText(text);
+            ok = true;
+        } catch (e) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch (e2) { ok = false; }
+        }
+        if (ok) scheduleClipClear();
+        showToast(ok ? `${label} ကို Copy ကူးပြီးပါပြီ!${clipClearMs ? ` (${clipClearMs / 1000}s အကြာ ရှင်းမည်)` : ''}` : "Copy ကူး၍ မရပါ");
+    }
+
+    async function wipeClipboard() {
+        try { await navigator.clipboard.writeText(' '); } catch (e) {}
+    }
+    function scheduleClipClear() {
+        clearTimeout(clipTimer);
+        clipTimer = null;
+        if (!clipClearMs) return;
+        clipTimer = setTimeout(() => { clipTimer = null; wipeClipboard(); }, clipClearMs);
+    }
+    function flushClip() {
+        if (clipTimer) { clearTimeout(clipTimer); clipTimer = null; wipeClipboard(); }
+    }
+
+    // ---------- Settings ----------
+    function openDrawer() {
+        document.getElementById('autoLockSel').value = String(AUTO_LOCK_MS);
+        document.getElementById('clipSel').value = String(clipClearMs);
+        updateBackupInfo();
+        document.getElementById('drawer').classList.add('open');
+        document.getElementById('drawerOverlay').classList.add('open');
+    }
+    function closeDrawer() {
+        const d = document.getElementById('drawer'), o = document.getElementById('drawerOverlay');
+        if (d) d.classList.remove('open');
+        if (o) o.classList.remove('open');
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+    function setAutoLock(v) {
+        const n = Number(v);
+        if (![60000, 120000, 300000, 900000].includes(n)) return;
+        AUTO_LOCK_MS = n;
+        lsSet(AUTOLOCK_KEY, String(n));
+        resetIdleTimer();
+        showToast("Auto-Lock ကြာချိန် ပြောင်းပြီးပါပြီ");
+    }
+    function setClipClear(v) {
+        const n = Number(v);
+        if (![0, 15000, 30000, 60000].includes(n)) return;
+        clipClearMs = n;
+        lsSet(CLIP_KEY, String(n));
+        showToast("သိမ်းပြီးပါပြီ");
+    }
+
+    // ---------- CSV export (plain text!) ----------
+    async function exportCsv() {
+        if (!currentPin) return;
+        if (accounts.length === 0) return uiAlert("Export လုပ်ရန် အကောင့် မရှိသေးပါ");
+        const ok = await uiConfirm("သတိ - CSV ဖိုင်သည် Encrypt မလုပ်ထားပါ။ Password များ အားလုံး ဖတ်လို့ရသော စာသားအဖြစ် ထွက်လာပါမည်။ တခြား Password Manager သို့ ရွှေ့ရန်သာ သုံးပြီး ပြီးလျှင် ဖိုင်ကို ဖျက်ပစ်ပါ။", "ဆက်လုပ်မည်", true);
+        if (!ok) return;
+        const p = await uiPrompt("အတည်ပြုရန် လက်ရှိ PIN/စကားဝှက်ကို ထပ်ရိုက်ပါ");
+        if (p === null) return;
+        if (p.trim() !== currentPin) return uiAlert("PIN မှားနေပါသည်");
+        const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+        const rows = [['email', 'password', '2fa_secret', 'recovery', 'note', 'favorite'].join(',')]
+            .concat(accounts.map(a => [a.email, a.pass, a.secret, a.rec, a.note, a.fav ? 'yes' : ''].map(q).join(',')));
+        isPickingFile = true;
+        try {
+            const d = new Date();
+            const name = `secret_key_export_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.csv`;
+            try { await deliverFile(name, '\ufeff' + rows.join('\r\n'), 'text/csv;charset=utf-8'); }
+            catch (e) { return uiAlert("CSV ဖိုင် သိမ်း၍ မရပါ"); }
+            showToast("CSV ဖိုင် သိမ်းပြီးပါပြီ - သုံးပြီးလျှင် ဖျက်ပစ်ပါ");
+        } finally {
+            setTimeout(() => { isPickingFile = false; }, 4000);
+        }
+    }
+
+    // ---------- QR scan for 2FA secret ----------
+    let qrStream = null, qrTarget = null, qrTimer = null, qrDetector = null;
+
+    async function openQr(targetId) {
+        if (!('BarcodeDetector' in window)) {
+            return uiAlert("ဤ Browser တွင် QR ဖတ်ခြင်း မပံ့ပိုးပါ။ Chrome (Android/PC) ဖြင့် ဖွင့်ပါ၊ သို့မဟုတ် Secret Key ကို ကိုယ်တိုင်ထည့်ပါ။");
+        }
+        try { qrDetector = new BarcodeDetector({ formats: ['qr_code'] }); }
+        catch (e) { return uiAlert("ဤ Browser တွင် QR ဖတ်ခြင်း မပံ့ပိုးပါ။"); }
+        qrTarget = targetId;
+        const status = document.getElementById('qrStatus');
+        status.innerText = "ကင်မရာကို QR ပုံဆီ ချိန်ပေးပါ...";
+        openModal('qrModal');
+        isPickingFile = true;
+        try {
+            qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+            const v = document.getElementById('qrVideo');
+            v.srcObject = qrStream;
+            await v.play();
+            qrLoop();
+        } catch (e) {
+            qrStream = null;
+            status.innerText = "ကင်မရာ ဖွင့်၍ မရပါ (ခွင့်ပြုချက် သို့မဟုတ် HTTPS လိုအပ်နိုင်သည်)။ “ပုံမှ ဖတ်မည်” ကို သုံးနိုင်ပါသည်။";
+        } finally {
+            setTimeout(() => { isPickingFile = false; }, 3000);
+        }
+    }
+
+    async function qrLoop() {
+        if (!qrStream) return;
+        const v = document.getElementById('qrVideo');
+        try {
+            if (v.readyState >= 2) {
+                const codes = await qrDetector.detect(v);
+                for (const c of codes) { if (handleQrValue(c.rawValue)) return; }
+            }
+        } catch (e) {}
+        qrTimer = setTimeout(qrLoop, 250);
+    }
+
+    function handleQrValue(raw) {
+        raw = String(raw || '');
+        const sec = normalizeSecret(raw);
+        if (!/^[A-Z2-7]{8,}$/.test(sec)) {
+            document.getElementById('qrStatus').innerText = "ဤ QR တွင် 2FA Secret မတွေ့ပါ (Google Authenticator “Export” QR ကို မပံ့ပိုးပါ)";
+            return false;
+        }
+        const target = qrTarget;
+        document.getElementById(target).value = sec;
+        const emailEl = document.getElementById(target.replace('Secret', 'Email'));
+        if (emailEl && !emailEl.value.trim()) {
+            const m = raw.match(/otpauth:\/\/totp\/([^?]+)/i);
+            if (m) {
+                let label = m[1];
+                try { label = decodeURIComponent(label); } catch (e) {}
+                const em = label.match(/[^\s:\/]+@[^\s:\/]+/);
+                if (em) emailEl.value = em[0];
+            }
+        }
+        closeQr();
+        showToast("2FA Secret Key ဖတ်ပြီးပါပြီ");
+        return true;
+    }
+
+    function closeQr() {
+        clearTimeout(qrTimer);
+        qrTimer = null;
+        if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+        const v = document.getElementById('qrVideo');
+        if (v) v.srcObject = null;
+        closeModal('qrModal');
+    }
+
+    function qrFromImage() {
+        if (!qrDetector) return;
+        isPickingFile = true;
+        document.getElementById('qrImgInput').click();
+        window.addEventListener('focus', () => { setTimeout(() => { isPickingFile = false; }, 1500); }, { once: true });
+    }
+
+    async function handleQrImage(event) {
+        isPickingFile = false;
+        const f = event.target.files[0];
+        event.target.value = '';
+        if (!f || !qrDetector) return;
+        try {
+            const bmp = await createImageBitmap(f);
+            const codes = await qrDetector.detect(bmp);
+            if (!codes.length) { document.getElementById('qrStatus').innerText = "ပုံထဲတွင် QR မတွေ့ပါ"; return; }
+            for (const c of codes) { if (handleQrValue(c.rawValue)) return; }
+        } catch (e) {
+            document.getElementById('qrStatus').innerText = "ပုံကို ဖတ်၍ မရပါ";
+        }
+    }
+
+    function copyById(id, field) {
+        const acc = accounts.find(a => a.id === id);
+        if (acc) copyText(acc[field], field === 'email' ? 'Email' : 'Password');
+    }
+
+    function copyTotp(id) {
+        const el = document.getElementById(`totp-${id}`);
+        const raw = el && el.dataset.raw;
+        if (raw && /^\d{6}$/.test(raw)) copyText(raw, '2FA Code');
+        else showToast("2FA Secret Key မှားနေပါသည်");
+    }
+
+    // ---------- Add / Edit / Delete ----------
+    function readForm(prefix) {
+        const g = (n, trim = true) => { const v = document.getElementById(prefix + n).value; return trim ? v.trim() : v; };
+        return { email: g('Email'), pass: g('Pass', false), secret: normalizeSecret(g('Secret')), rec: g('Rec'), note: g('Note') };
+    }
+
+    function validateForm(f) {
+        if (!f.email || !f.pass) { uiAlert("Email နှင့် Password ဖြည့်ပါ"); return false; }
+        if (f.secret && !/^[A-Z2-7]{8,}$/.test(f.secret)) {
+            uiAlert("2FA Secret Key ပုံစံ မှားနေပါသည် (A-Z နှင့် 2-7 သာ ပါရမည်)");
+            return false;
+        }
+        return true;
+    }
+
+    async function addSingle() {
+        const f = readForm('in');
+        if (!validateForm(f)) return;
+        accounts.unshift({ id: uid(), ...f });
+        if (await safeSave("Encrypt လုပ်ပြီး သိမ်းဆည်းပြီးပါပြီ")) {
+            closeModal('singleModal');
+            ['inEmail', 'inPass', 'inSecret', 'inRec', 'inNote'].forEach(i => { document.getElementById(i).value = ''; });
+        }
+    }
+
+    function openEditModal(id) {
+        const acc = accounts.find(a => a.id === id);
+        if (!acc) return;
+        document.getElementById('editId').value = acc.id;
+        document.getElementById('editEmail').value = acc.email;
+        document.getElementById('editPass').value = acc.pass;
+        document.getElementById('editSecret').value = acc.secret || '';
+        document.getElementById('editRec').value = acc.rec || '';
+        document.getElementById('editNote').value = acc.note || '';
+        openModal('editModal');
+    }
+
+    async function saveEdit() {
+        const id = document.getElementById('editId').value;
+        const f = readForm('edit');
+        if (!validateForm(f)) return;
+        const idx = accounts.findIndex(a => a.id === id);
+        if (idx === -1) return;
+        accounts[idx] = { ...accounts[idx], ...f };
+        delete totpLast[id];
+        if (await safeSave("ပြင်ဆင်မှုများကို Encrypt လုပ်ပြီး သိမ်းပြီးပါပြီ")) closeModal('editModal');
+    }
+
+    // split on "|" ; "\|" = literal pipe, "\\" = literal backslash
+    function splitEsc(line) {
+        const out = [];
+        let cur = '';
+        for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '\\' && (line[i + 1] === '|' || line[i + 1] === '\\')) { cur += line[i + 1]; i++; }
+            else if (c === '|') { out.push(cur); cur = ''; }
+            else cur += c;
+        }
+        out.push(cur);
+        return out;
+    }
+
+    async function addBulk() {
+        const lines = document.getElementById('bulkText').value.split(/\r?\n/).filter(l => l.trim());
+        let added = 0, skipped = 0;
+        const fresh = [];
+        for (const line of lines) {
+            const p = splitEsc(line);
+            const email = (p[0] || '').trim();
+            const pass = (p[1] || '').trim();
+            const secret = normalizeSecret(p[2]);
+            if (!email || !pass || (secret && !/^[A-Z2-7]{8,}$/.test(secret))) { skipped++; continue; }
+            fresh.push({ id: uid(), email, pass, secret, rec: (p[3] || '').trim(), note: (p[4] || '').trim() });
+            added++;
+        }
+        if (added === 0) return uiAlert("ထည့်သွင်းနိုင်သော လိုင်း မတွေ့ပါ။ ပုံစံကို ပြန်စစ်ပါ။");
+        accounts = fresh.reverse().concat(accounts);
+        if (await safeSave(`အကောင့် (${added}) ခု သွင်းပြီး${skipped ? ` / ကျော်ထားသည် (${skipped})` : ''}`)) {
+            closeModal('bulkModal');
+            document.getElementById('bulkText').value = '';
+        }
+    }
+
+    async function deleteAcc(id) {
+        const target = accounts.find(a => a.id === id);
+        if (!target) return;
+        const ok = await uiConfirm(`ဤအကောင့်ကို အပြီးအပိုင် ဖျက်မည်လား?\n\n${target.email}`, "ဖျက်မည်", true);
+        if (!ok) return;
+        visiblePasswords.delete(id);
+        delete totpLast[id];
+        accounts = accounts.filter(a => a.id !== id);
+        await safeSave("ဖျက်ပြီးပါပြီ");
+    }
+
+    // ---------- Backup / Restore (encrypted) ----------
+    const BACKUP_KEY = 'gmail_vault_last_backup';
+    function updateBackupInfo() {
+        const el = document.getElementById('backupInfo');
+        if (!el) return;
+        let t = 0;
+        try { t = Number(localStorage.getItem(BACKUP_KEY)) || 0; } catch (e) {}
+        const days = t ? Math.floor((Date.now() - t) / 86400000) : 0;
+        const dot = document.getElementById('menuDot');
+        if (dot) dot.classList.toggle('hidden', !!t && days < BACKUP_WARN_DAYS);
+        if (!t) {
+            el.innerHTML = `${ic('alert')} Backup မယူရသေးပါ - “Backup သိမ်းမည်” ကိုနှိပ်ပြီး သိမ်းထားပါ`;
+            el.style.color = 'var(--warning)';
+        } else if (days >= BACKUP_WARN_DAYS) {
+            el.innerHTML = `${ic('alert')} Backup မယူတာ ${days} ရက်ရှိပါပြီ - ပြန်သိမ်းသင့်ပါသည်`;
+            el.style.color = 'var(--warning)';
+        } else {
+            el.innerHTML = `${ic('check')} နောက်ဆုံး Backup: ${escapeHtml(new Date(t).toLocaleString())}`;
+            el.style.color = 'var(--muted)';
+        }
+    }
+
+    // ---------- Save a file: native share sheet inside the Android app, normal download in a browser ----------
+    async function deliverFile(filename, text, mime) {
+        const cap = window.Capacitor;
+        const P = cap && cap.Plugins;
+        if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform() && P && P.Filesystem && P.Share) {
+            const w = await P.Filesystem.writeFile({ path: filename, data: text, directory: 'CACHE', encoding: 'utf8' });
+            await P.Share.share({ title: filename, url: w.uri, dialogTitle: 'ဖိုင်ကို သိမ်းရန် ရွေးပါ' });
+            return;
+        }
+        const blob = new Blob([text], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    const BACKUP_DIR = 'SecretKey';
+    function nativeFs() {
+        const c = window.Capacitor;
+        return (c && typeof c.isNativePlatform === 'function' && c.isNativePlatform() && c.Plugins && c.Plugins.Filesystem) || null;
+    }
+
+    // Native app: write into Documents/SecretKey. If that is refused, fall back to the share sheet.
+    async function saveBackupFile(filename, text) {
+        const fs = nativeFs();
+        if (fs) {
+            try {
+                await fs.writeFile({ path: `${BACKUP_DIR}/${filename}`, data: text, directory: 'DOCUMENTS', encoding: 'utf8', recursive: true });
+                return 'folder';
+            } catch (e) { /* fall through to share */ }
+        }
+        await deliverFile(filename, text, 'application/json');
+        return 'share';
+    }
+
+    async function latestNativeBackup() {
+        const fs = nativeFs();
+        if (!fs) return null;
+        try {
+            const r = await fs.readdir({ path: BACKUP_DIR, directory: 'DOCUMENTS' });
+            const files = (r.files || [])
+                .map(f => (typeof f === 'string' ? { name: f, mtime: 0 } : f))
+                .filter(f => /^secret_key_backup_.*\.json$/.test(f.name))
+                .sort((a, b) => ((a.mtime || 0) - (b.mtime || 0)) || a.name.localeCompare(b.name));
+            if (!files.length) return null;
+            const f = files[files.length - 1];
+            const data = await fs.readFile({ path: `${BACKUP_DIR}/${f.name}`, directory: 'DOCUMENTS', encoding: 'utf8' });
+            const text = typeof data.data === 'string' ? data.data : '';
+            return text ? { name: f.name, text } : null;
+        } catch (e) { return null; }
+    }
+
+    async function exportBackup() {
+        if (!currentPin) return;
+        if (accounts.length === 0) return uiAlert("Backup လုပ်ရန် အကောင့် မရှိသေးပါ");
+        const bp = await uiPrompt("Backup ဖိုင်အတွက် သီးသန့် စကားဝှက် ပေးနိုင်ပါသည် (အနည်းဆုံး ၈ လုံး)။\n\nအလွတ်ထားပါက လက်ရှိ PIN ကိုပဲ သုံးပါမည်။");
+        if (bp === null) return;
+        let backupSecret = currentPin;
+        const b1 = bp.trim();
+        if (b1) {
+            if (b1.length < MIN_NEW_PIN) return uiAlert(`Backup စကားဝှက် အနည်းဆုံး ${MIN_NEW_PIN} လုံး ရှိရပါမည်`);
+            const b2 = await uiPrompt("Backup စကားဝှက်ကို ထပ်ရိုက်ပါ (မေ့သွားလျှင် Backup ပြန်ဖွင့်၍ မရတော့ပါ)");
+            if (b2 === null) return;
+            if (b2.trim() !== b1) return uiAlert("စကားဝှက် နှစ်ခု မတူပါ");
+            backupSecret = b1;
+        }
+        isPickingFile = true;
+        try {
+            const payload = await encryptData(accounts, backupSecret);
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+            const fname = `secret_key_backup_${stamp}.json`;
+            let how;
+            try { how = await saveBackupFile(fname, payload); }
+            catch (e) { return uiAlert("Backup ဖိုင် သိမ်း၍ မရပါ"); }
+            try { localStorage.setItem(BACKUP_KEY, String(Date.now())); } catch (e) {}
+            updateBackupInfo();
+            if (how === 'folder') {
+                await uiAlert(`✅ Backup သိမ်းပြီးပါပြီ (${accounts.length} အကောင့်)\n\nနေရာ - Files app → Documents → ${BACKUP_DIR}\nဖိုင် - ${fname}`);
+            } else {
+                showToast("✅ Backup ဖိုင် သိမ်းပြီးပါပြီ (" + accounts.length + " အကောင့်)");
+            }
+        } finally {
+            setTimeout(() => { isPickingFile = false; }, 4000);
+        }
+    }
+
+    async function triggerRestore() {
+        const latest = await latestNativeBackup();
+        if (latest) {
+            const use = await showDialog({
+                msg: `Documents/${BACKUP_DIR} ထဲတွင် နောက်ဆုံး Backup ဖိုင် တွေ့ပါသည်။\n\n${latest.name}\n\nဤဖိုင်ကို သုံးမလား?`,
+                ok: 'ဒီဖိုင်ကို သုံးမည်', cancel: 'တခြားဖိုင် ရွေးမည်'
+            });
+            if (use) { await runRestoreText(latest.text); return; }
+        }
+        isPickingFile = true;
+        document.getElementById('restoreFileInput').click();
+        window.addEventListener('focus', () => {
+            setTimeout(() => { isPickingFile = false; }, 1500);
+        }, { once: true });
+    }
+
+    async function parseBackup(text) {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return parsed;              // old plain backup
+        if (parsed && parsed.cipher && parsed.salt && parsed.iv) { // encrypted backup
+            try { return (await decryptData(text, currentPin)).data; } catch (e) {}
+            const p = await uiPrompt("Backup ဖိုင်ကို Encrypt လုပ်ခဲ့သော Backup စကားဝှက် / PIN ကို ရိုက်ထည့်ပါ");
+            if (!p) throw new Error('cancel');
+            try { return (await decryptData(text, p.trim())).data; }
+            catch (e) { throw new Error('badpin'); }
+        }
+        throw new Error('invalid');
+    }
+
+    function handleRestoreFile(event) {
+        isPickingFile = false;
+        const file = event.target.files[0];
+        const input = event.target;
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => runRestoreText(e.target.result);
+        reader.readAsText(file);
+        input.value = '';
+    }
+
+    async function runRestoreText(text) {
+        try {
+            const list = await parseBackup(text);
+            if (!Array.isArray(list)) throw new Error('invalid');
+            pendingRestoreData = normalizeAccounts(list.filter(i => i && i.email && i.pass))
+                .map(i => ({ ...i, id: uid(), secret: normalizeSecret(i.secret) }));
+            if (pendingRestoreData.length === 0) return uiAlert("Backup ဖိုင်ထဲတွင် အချက်အလက် မတွေ့ပါ။");
+            document.getElementById('restoreSummary').innerText =
+                `Backup ဖိုင်ထဲတွင် Gmail အကောင့် (${pendingRestoreData.length}) ခု တွေ့ရှိပါသည်။ မည်သို့ ထည့်သွင်းလိုပါသလဲ?`;
+            openModal('restoreModal');
+        } catch (err) {
+            if (err.message === 'cancel') return;
+            uiAlert(err.message === 'badpin' ? "PIN မှားနေပါသည်" : "ဖိုင်ပုံစံ မှားယွင်းနေပါသည်။");
+        }
+    }
+
+    function cancelRestore() {
+        pendingRestoreData = [];
+        closeModal('restoreModal');
+    }
+
+    async function confirmRestore(mode) {
+        if (mode === 'replace') {
+            if (!(await uiConfirm("လက်ရှိ အကောင့်အားလုံး ပျက်သွားပါမည်။ သေချာပါသလား?", "အစားထိုးမည်", true))) return;
+            visiblePasswords.clear();
+            accounts = pendingRestoreData;
+            pendingRestoreData = [];
+            if (await safeSave(`✅ Restore အောင်မြင်ပါသည် - အကောင့် (${accounts.length}) ခုဖြင့် အစားထိုးပြီး`)) closeModal('restoreModal');
+        } else {
+            const byEmail = new Map(accounts.map(a => [a.email.toLowerCase(), a]));
+            let added = 0, updated = 0;
+            pendingRestoreData.forEach(item => {
+                const key = item.email.toLowerCase();
+                const cur = byEmail.get(key);
+                if (!cur) { accounts.unshift(item); byEmail.set(key, item); added++; return; }
+                let changed = false;
+                ['pass', 'secret', 'rec', 'note'].forEach(f => {
+                    if (item[f] && item[f] !== cur[f]) { cur[f] = item[f]; changed = true; }
+                });
+                if (item.fav && !cur.fav) { cur.fav = true; changed = true; }
+                if (changed) { updated++; delete totpLast[cur.id]; }
+            });
+            pendingRestoreData = [];
+            if (await safeSave(`✅ Restore အောင်မြင်ပါသည် - အသစ် (${added}) ခု၊ Update (${updated}) ခု (စုစုပေါင်း ${accounts.length})`)) closeModal('restoreModal');
+        }
+    }
+
+    // ---------- Init ----------
+    (function init() {
+        hydrateIcons();
+        document.getElementById('sortSel').value = sortMode;
+        let saved = 'light';
+        try { saved = localStorage.getItem(THEME_KEY) || 'light'; } catch (e) {}
+        applyTheme(saved, false);
+        initLockScreen();
+    })();
+</script>
+</body>
+</html>
